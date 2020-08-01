@@ -1,0 +1,21 @@
+本工程是通过@vivo-minigame/cli构建工程目录的
+具体参考：https://www.npmjs.com/package/@vivo-minigame/cli?spm=a2c6h.14275010.0.0.4f6c42cdfD4z2t
+
+1、安装@vivo-minigame/cli
+	npm install -g @vivo-minigame/cli
+2、使用
+	mg init frxxz
+3、编译：
+	npm run build
+4、调试：
+	npm run server
+重点：a.如果编译过程中出现生成被取消，超过500kb的提示，需要手动创建或从别处拷贝.babelrc文件，并在presets中加上compact:false,这样生成的出来的文件才能完整
+b.libCode.js中存在一些语法错误的，在生成中被识别未定义，例：PNG,onmessage,需要看情况删除
+c.需要手动添加分包配置
+
+QAQ问题:
+1. ELIFECYCLE错误,解决如下:
+    1. npm cache clean --force
+    2. 删除 node_modules/目录
+    3. 删除 package-lock.json文件
+    4. npm install 从新安装依赖
