@@ -1,0 +1,14 @@
+
+编译：目前B站小游戏只有mac半开发工具，window只能命令行解决
+安装：npm i -g bili-sgame-cli
+
+编译：bili-sgame-cli serve <mid>  mid就是UiD，需要添加到开发者名单中
+上传：bili-sgame-cli upload <mid>
+
+1.npx报错：Path must be a string. Received undefined
+    a.原因:使用较老版本的nodjs，npx的版本也较低，通常会出现该错误
+    b.解决：手动更新npm i -g npx，更新后还是这样，那就要设置环境变量，将node全局安装路径复制到系统的path中，且要在nodejs安装目录前面，重试一下，不行重启电脑再试
+    c.具体原因和操作看链接：https://blog.yinaoxiong.cn/2018/08/19/fix-npx-erro.html
+
+2.开发文档地址：
+	http://miniapp.bilibili.com/small-game-doc/guide/first-program/
