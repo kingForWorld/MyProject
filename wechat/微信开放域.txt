@@ -1,0 +1,173 @@
+1、微信开放域主要是渲染一个离屏画布canvas,然后主域通过wx.getOpenDataContext()获取到子域的canvas进行渲染
+2、主域可通过drawImage、wxBindCanvasTexture、createPattern、texImage2D
+3、开放域中的定向分享参数不能带有自定义的query参数
+4、主域只能单向发数据到子域
+5、子域获取好友信息不需要授权
+6、只能加载本地的资源或微信的cdn，所以如果需要使用网络资源，需要先在主域使用path = wx.downloadFile()下载到本地，将path（资源路径）发送到子域使用
+7、开放域的点击事件只能通过坐标对比，找到对应的位置，触发对应事件
+
+以下为参考代码：
+
+//获取当前的离屏画布
+var sharedCanvas = wx.getSharedCanvas();
+var context = sharedCanvas.getContext('2d');
+
+const assets = {
+    button: "openDataContext/asset/btn.png",
+    bg: "openDataContext/asset/itemBg.png",
+  };
+
+/**
+ * 是否加载过资源的标记量
+ */
+let hasLoadRes;
+let data = wx.getSystemInfoSync();
+let canvasWidth = data ? data.windowWidth : 0;
+let canvasHeight = data ? data.windowHeight : 0;
+let btnWidth = 50;
+let btnHeight = 40;
+let avatarWidth = 40;    //头像宽度
+let avatarHeight = 40;    //头像高度
+let bgWidth = 250;    //背景宽度
+let bgHeight = 56;    //背景高度
+let fontSize = 16;    //字体大小
+let fontType = fontSize + "px Arial";    //字体样式
+let fillColor = "#000000";    //填充颜色
+let bg_h_Space = 40;    //背景水平间距
+let bg_v_Space = 0;    //背景垂直间距
+let stageWidth = 0;    //用于计算分辨率(暂时不用)
+let stageHeight = 0;   //用于计算分辨率(暂时不用)
+let starY = 0;
+let starX = 0;
+let buttonPoint = [];
+
+//接受主域发送过来的消息
+wx.onMessage(data => {
+    console.log(data)
+    switch (data.action) {
+        //加载本地资源
+        case "wx_asset_load":
+            preloadAssets();
+            stageWidth = data.stageWidth;
+            stageHeight = data.stageHeight;
+            starY = data.starY ? data.starY : 0;
+            starX = data.starX ? data.starX : 0;
+            bgWidth = data.bgWidth ? data.bgWidth : 250;
+            bgHeight = data.bgHeight? data.bgHeight : 56
+            bg_h_Space = data.bgSpaceH ? data.bgSpaceH : 0;
+            bg_v_Space = data.bgSpaceV ? data.bgSpaceV : 0;
+            break;
+        case "wx_refresh_friend":
+            wx.getPotentialFriendList({
+                success: res => {
+                    //刷新好友列表
+                    if(res && res.list)
+                    {
+                        drawScene(res.list);
+                    }
+                },
+            })
+            break;
+    }
+})
+
+//在主域改变子域画布尺寸就会清空重新绘制
+function drawScene(arr) {
+    context.font = fontType;
+    context.fillStyle = fillColor;
+    let a = 0;
+    let a2 = 0;  //头像
+    let a3 = 0;  //邀请按钮
+    let a4 = 0;  //文字
+    let y1 = 0;  //背景中间y点
+    let y2 = 0;  //头像y点
+    let y3 = 0;  //邀请按钮y点
+    let y4 = 0;  //文字y点
+    let bg_x = 0;  //背景坐标
+    let bg_y = 0;  //背景坐标
+    buttonPoint = [];
+    for (let i = 0; i < arr.length; i++) {
+        let img = wx.createImage();
+        img.src = arr[i].avatarUrl;
+        img.onload = function () {
+            a = bgHeight / 2;
+            bg_y = Math.floor(i / 2) * bgHeight + starY;
+            y1 = a + bg_y;
+            a2 = avatarHeight / 2;
+            y2 = y1 - a2;
+            a3 = btnHeight / 2;
+            y3 = y1 - a3;
+            a4 = fontSize / 2;
+            y4 = y1 - a4;
+            bg_x = (i % 2) * (bgWidth + bg_h_Space) + starX;
+            //背景
+            context.drawImage(assets.bg, bg_x, bg_y, bgWidth, bgHeight);
+            //头像  相对背景居中显示
+            context.drawImage(img, bg_x, y2, avatarWidth, avatarHeight);
+            //昵称  相对背景居中显示
+            context.fillText(arr[i].nickname, bg_x + avatarWidth, y1);
+            //邀请按钮
+            context.drawImage(assets.button, bg_x + bgWidth - 10 - btnWidth, y3, btnWidth, btnHeight);
+            //保存按钮坐标，用于点击计算
+            buttonPoint.push({x: bg_x + bgWidth - 10 - btnWidth, y: y3, width: btnWidth, height: btnHeight, openId: arr[i].openid});
+        }
+    }
+}
+
+/**
+ * 监听点击
+ */
+wx.onTouchEnd((event) => {
+    const l = event.changedTouches.length;
+    for (let i = 0; i < l; i++) {
+        onTouchEnd(event.changedTouches[i]);
+    }
+});
+
+function onTouchEnd (event) {
+    let h = canvasWidth / sharedCanvas.width * sharedCanvas.height;
+    let dy = canvasHeight - h;
+    let x = event.clientX * sharedCanvas.width / canvasWidth;
+    let y = (event.clientY-dy) * sharedCanvas.height / h;
+    // let dy = stageHeight - sharedCanvas.height;
+    // dy = dy > 0 ? dy : 0;
+    // let x = event.clientX * stageWidth / canvasWidth;
+    // let y = event.clientY * stageHeight / canvasHeight - dy;
+    for (let i = 0; i < buttonPoint.length; i++) {
+        if(buttonPoint[i].x <= x 
+            && x <= buttonPoint[i].x + buttonPoint[i].width 
+            && buttonPoint[i].y  <= y && y <= buttonPoint[i].y + buttonPoint[i].height)
+            {
+                wx.shareMessageToFriend({
+                    openId: buttonPoint[i].openId,
+                })
+                break;
+            }
+    }
+}
+
+/**
+ * 资源加载
+ */
+
+function preloadAssets() {
+    //避免多次加载
+    if(hasLoadRes) return;
+    var preloaded = 0;
+    var count = 0;
+    for (let asset in assets) {
+        count++;
+        const img = wx.createImage();
+        img.onload = function () {
+            preloaded++;
+            if (preloaded == count) {
+                console.log("开放域资源加载完成");
+                hasLoadRes = true;
+            }
+        }
+        img.src = assets[asset];
+        assets[asset] = img;
+    }
+}
+
+  
