@@ -1,1 +1,4 @@
 https://blog.csdn.net/qq_36667170/article/details/79094257
+
+注意：
+如果是sourcetree的话，最后还需要在工具-->选项-->SSH客户端配置，选中OpenSSh
