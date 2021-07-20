@@ -1,0 +1,18 @@
+1.vscode 需要安装Debugger for chrome插件
+
+2.安装 layaair2-cmd 缓慢， 可以设置淘宝镜像
+**** npm config set registry https://registry.npm.taobao.org
+
+3.layaair2-cmd编译需要用到gulp， 安装全局 gulp
+
+4.目前laya vscode编译只支持node 10.*的版本， 推荐node 10.17.0
+
+5.自动编译需要安装本地gulp，且是指定3.9.1版本 npm i gulp@3.9.1
+
+6.添加gulpfile.js脚本文件，该脚本文件需要注意：
+*** const {watch ,task } = require("gulp");  需要改成 const gulp = require("gulp");
+*** task ---> gulp.task
+*** watch --->gulp.watch
+*** cb()的使用需要判断空盒是否为function
+
+7.gulp compile即可自动编译
